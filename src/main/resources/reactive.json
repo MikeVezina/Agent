@@ -1,0 +1,51 @@
+{
+  "matchers": [
+    {
+      "environment": "BALL_FOUND",
+      "action": {
+        "action": "turn",
+        "args": [
+          "ball.m_direction"
+        ]
+      }
+    },
+
+    {
+      "environment": "FACING_BALL",
+      "action": {
+        "action": "dash",
+        "args": [
+          "50"
+        ]
+      }
+    },
+
+    {
+      "environment": "NEAR_BALL",
+      "action": {
+        "action": "turn",
+        "args": [
+          "ball.m_direction"
+        ]
+      }
+    },
+
+    {
+      "environment": "BALL_RETRIEVED",
+      "action": {
+        "action": "kick",
+        "args": [
+          "100",
+          "0"
+        ]
+      }
+    }
+  ],
+
+  "defaultAction": {
+    "action": "turn",
+    "args": [
+      "40"
+    ]
+  }
+}
