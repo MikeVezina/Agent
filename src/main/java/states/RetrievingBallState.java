@@ -12,6 +12,7 @@ public class RetrievingBallState extends BrainState {
 
     @Override
     public BrainState facingBall(BallInfo ballInfo) {
+        System.out.println("Running for the ball!");
         sendCommand.dash(5 * ballInfo.m_distance);
         return this;
     }
