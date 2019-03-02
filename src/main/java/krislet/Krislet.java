@@ -10,8 +10,7 @@ package krislet;//
 //********************************************
 
 import object.VisualInfo;
-import strategy.ReactiveBrain;
-import strategy.StateBrain;
+import strategy.ContingencyBrain;
 
 import java.io.*;
 import java.net.*;
@@ -66,10 +65,9 @@ public class Krislet implements SendCommand {
                     port = Integer.parseInt(a[c + 1]);
                 } else if (a[c].compareTo("-team") == 0) {
                     team = a[c + 1];
-                }
-                else if (a[c].compareTo("-strategy") == 0) {
+                } else if (a[c].compareTo("-strategy") == 0) {
                     strategy = a[c + 1].toLowerCase();
-                    if(!strategy.startsWith("r") && !strategy.startsWith("s"))
+                    if (!strategy.startsWith("r") && !strategy.startsWith("s"))
                         throw new Exception("Provided strategy was not valid.");
                 } else {
                     throw new Exception();
@@ -212,104 +210,100 @@ public class Krislet implements SendCommand {
         int number = Integer.parseInt(m.group(2));
         String playMode = m.group(3);
 
-        if(strategy.startsWith("r"))
-            m_brain = new ReactiveBrain(this, m_team, m_side, number, playMode);
-        else
-            m_brain = new StateBrain(this, m_team, m_side, number, playMode);
+        m_brain = new ContingencyBrain(this, m_team, m_side, number, playMode);
     }
 
-
-    //===========================================================================
-    // Here comes collection of communication function
-    //---------------------------------------------------------------------------
-    // This function sends initialization command to the server
-    private void init() {
-        send("(init " + m_team + " (version 9))");
-    }
-
-    //---------------------------------------------------------------------------
-    // This function parses sensor information
-    private void parseSensorInformation(String message) throws IOException {
-        // First check kind of information
-        Matcher m = message_pattern.matcher(message);
-        if (!m.matches()) {
-            throw new IOException(message);
-        }
-        if (m.group(1).compareTo("see") == 0) {
-            VisualInfo info = new VisualInfo(message);
-            info.parse();
-            m_brain.see(info);
-        } else if (m.group(1).compareTo("hear") == 0)
-            parseHear(message);
-    }
-
-
-    //---------------------------------------------------------------------------
-    // This function parses hear information
-    private void parseHear(String message) throws IOException {
-        // get hear information
-        Matcher m = hear_pattern.matcher(message);
-        int time;
-        String sender;
-        String uttered;
-        if (!m.matches()) {
-            throw new IOException(message);
-        }
-        time = Integer.parseInt(m.group(1));
-        sender = m.group(2);
-        uttered = m.group(3);
-        if (sender.compareTo("referee") == 0)
-            m_brain.hear(time, uttered);
-            //else if( coach_pattern.matcher(sender).find())
-            //    m_brain.hear(time,sender,uttered);
-        else if (sender.compareTo("self") != 0)
-            m_brain.hear(time, Integer.parseInt(sender), uttered);
-    }
-
-
-    //---------------------------------------------------------------------------
-    // This function sends via socket message to the server
-    private void send(String message) {
-        byte[] buffer = Arrays.copyOf(message.getBytes(), MSG_SIZE);
-        try {
-            DatagramPacket packet = new DatagramPacket(buffer, MSG_SIZE, m_host, m_port);
-            m_socket.send(packet);
-        } catch (IOException e) {
-            System.err.println("socket sending error " + e);
+        //===========================================================================
+        // Here comes collection of communication function
+        //---------------------------------------------------------------------------
+        // This function sends initialization command to the server
+        private void init () {
+            send("(init " + m_team + " (version 9))");
         }
 
-    }
-
-    //---------------------------------------------------------------------------
-
-    // This function waits for new message from server
-    private String receive() {
-        byte[] buffer = new byte[MSG_SIZE];
-        DatagramPacket packet = new DatagramPacket(buffer, MSG_SIZE);
-        try {
-            m_socket.receive(packet);
-        } catch (SocketException e) {
-            System.out.println("shutting down...");
-        } catch (IOException e) {
-            System.err.println("socket receiving error " + e);
+        //---------------------------------------------------------------------------
+        // This function parses sensor information
+        private void parseSensorInformation (String message) throws IOException {
+            // First check kind of information
+            Matcher m = message_pattern.matcher(message);
+            if (!m.matches()) {
+                throw new IOException(message);
+            }
+            if (m.group(1).compareTo("see") == 0) {
+                VisualInfo info = new VisualInfo(message);
+                info.parse();
+                m_brain.see(info);
+            } else if (m.group(1).compareTo("hear") == 0)
+                parseHear(message);
         }
-        return new String(buffer);
+
+
+        //---------------------------------------------------------------------------
+        // This function parses hear information
+        private void parseHear (String message) throws IOException {
+            // get hear information
+            Matcher m = hear_pattern.matcher(message);
+            int time;
+            String sender;
+            String uttered;
+            if (!m.matches()) {
+                throw new IOException(message);
+            }
+            time = Integer.parseInt(m.group(1));
+            sender = m.group(2);
+            uttered = m.group(3);
+            if (sender.compareTo("referee") == 0)
+                m_brain.hear(time, uttered);
+                //else if( coach_pattern.matcher(sender).find())
+                //    m_brain.hear(time,sender,uttered);
+            else if (sender.compareTo("self") != 0)
+                m_brain.hear(time, Integer.parseInt(sender), uttered);
+        }
+
+
+        //---------------------------------------------------------------------------
+        // This function sends via socket message to the server
+        private void send (String message){
+            byte[] buffer = Arrays.copyOf(message.getBytes(), MSG_SIZE);
+            try {
+                DatagramPacket packet = new DatagramPacket(buffer, MSG_SIZE, m_host, m_port);
+                m_socket.send(packet);
+            } catch (IOException e) {
+                System.err.println("socket sending error " + e);
+            }
+
+        }
+
+        //---------------------------------------------------------------------------
+
+        // This function waits for new message from server
+        private String receive () {
+            byte[] buffer = new byte[MSG_SIZE];
+            DatagramPacket packet = new DatagramPacket(buffer, MSG_SIZE);
+            try {
+                m_socket.receive(packet);
+            } catch (SocketException e) {
+                System.out.println("shutting down...");
+            } catch (IOException e) {
+                System.err.println("socket receiving error " + e);
+            }
+            return new String(buffer);
+        }
+
+
+        //===========================================================================
+        // Private members
+        // class members
+        private DatagramSocket m_socket;        // Socket to communicate with server
+        private InetAddress m_host;            // Server address
+        private int m_port;            // server port
+        private String m_team;            // team name
+        private SensorInput m_brain;        // input for sensor information
+        private boolean m_playing;              // controls the MainLoop
+        private Pattern message_pattern = Pattern.compile("^\\((\\w+?)\\s.*");
+        private Pattern hear_pattern = Pattern.compile("^\\(hear\\s(\\w+?)\\s(\\w+?)\\s(.*)\\).*");
+        //private Pattern coach_pattern = Pattern.compile("coach");
+        // constants
+        private static final int MSG_SIZE = 4096;    // Size of socket buffer
+
     }
-
-
-    //===========================================================================
-    // Private members
-    // class members
-    private DatagramSocket m_socket;        // Socket to communicate with server
-    private InetAddress m_host;            // Server address
-    private int m_port;            // server port
-    private String m_team;            // team name
-    private SensorInput m_brain;        // input for sensor information
-    private boolean m_playing;              // controls the MainLoop
-    private Pattern message_pattern = Pattern.compile("^\\((\\w+?)\\s.*");
-    private Pattern hear_pattern = Pattern.compile("^\\(hear\\s(\\w+?)\\s(\\w+?)\\s(.*)\\).*");
-    //private Pattern coach_pattern = Pattern.compile("coach");
-    // constants
-    private static final int MSG_SIZE = 4096;    // Size of socket buffer
-
-}

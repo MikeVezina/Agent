@@ -15,7 +15,11 @@
             <artifactId>json</artifactId>
             <version>20180813</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.googlecode.aima-java</groupId>
+            <artifactId>aima-core</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

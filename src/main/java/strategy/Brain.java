@@ -8,7 +8,9 @@ package strategy;//
 //    Modified by:      Edgar Acosta
 //    Date:             March 4, 2008
 
-import environment.EnvironmentState;
+import contingency.environment.BallState;
+import contingency.environment.EnvironmentState;
+import contingency.environment.GameState;
 import krislet.Memory;
 import krislet.SendCommand;
 import krislet.SensorInput;
@@ -20,9 +22,6 @@ import object.VisualInfo;
 import java.lang.Math;
 import java.util.regex.*;
 
-import static environment.EnvironmentState.GAME_PAUSED;
-import static environment.EnvironmentState.GAME_PLAYING;
-
 public abstract class Brain extends Thread implements SensorInput {
 
 
@@ -31,6 +30,7 @@ public abstract class Brain extends Thread implements SensorInput {
     protected char m_side;
     volatile protected boolean m_timeOver;
     protected String m_playMode;
+    protected GameState currentGameState;
 
     public Brain(SendCommand krislet, String team, char side, int number, String playMode) {
         m_timeOver = false;
@@ -44,27 +44,32 @@ public abstract class Brain extends Thread implements SensorInput {
 
     protected abstract void receivedState(EnvironmentState environmentState);
 
-    private EnvironmentState getEnvironmentState() {
+    protected EnvironmentState getEnvironmentState() {
         ObjectInfo ballObj = m_memory.getObject("ball");
+        BallState ballState = getBallState(ballObj);
+        return new EnvironmentState(ballState);
+    }
 
+    private BallState getBallState(Object ballObj)
+    {
         if (!(ballObj instanceof BallInfo))
-            return EnvironmentState.BALL_NOT_FOUND;
+            return BallState.NOT_PRESENT;
 
-        BallInfo ballInfo = (BallInfo) ballObj;
+            BallInfo ballInfo = (BallInfo) ballObj;
 
-        boolean nearBall = ballInfo.m_distance <= 1.0;
-        boolean facingBall = ballInfo.m_direction == 0;
+            boolean nearBall = ballInfo.m_distance <= 1.0;
+            boolean facingBall = ballInfo.m_direction == 0;
 
-        if (nearBall && facingBall)
-            return EnvironmentState.BALL_RETRIEVED;
+            if (nearBall && facingBall)
+                return BallState.OBTAINED;
 
-        if (nearBall)
-            return EnvironmentState.NEAR_BALL;
+            if (nearBall)
+                return BallState.NEAR;
 
-        if (facingBall)
-            return EnvironmentState.FACING_BALL;
+            if (facingBall)
+                return BallState.FACING;
 
-        return EnvironmentState.BALL_FOUND;
+            return BallState.PRESENT;
     }
 
     public void run() {
@@ -142,9 +147,9 @@ public abstract class Brain extends Thread implements SensorInput {
     public void hear(int time, String message) {
         // send game start event when the play mode is not before kick off
         if (isPlaying(message))
-            receivedState(GAME_PLAYING);
+            currentGameState = GameState.PLAYING;
         else {
-            receivedState(GAME_PAUSED);
+            currentGameState = GameState.NOT_PLAYING;
             if (message.compareTo("time_over") == 0)
                 m_timeOver = true;
         }
